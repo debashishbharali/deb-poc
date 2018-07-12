@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+	http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+	">
+
+	<import resource="classpath:spring-config/redisson-configuration.xml" />
+	<import resource="classpath:spring-config/deb-beans.xml" />
+
+	<context:component-scan base-package="com.nucleus">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+	<context:annotation-config />
+	<tx:annotation-driven />
+
+
+
+
+	<bean id="entityManagerFactory"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean"
+		depends-on="transactionManager">
+		<property name="persistenceXmlLocation" value="classpath*:META-INF/Persistence.xml"></property>
+		<property name="persistenceUnitName" ref="basePersistenceUnitName" />
+		<property name="persistenceUnitManager" ref="persistenceUnitManager" />
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+				<property name="generateDdl" value="${jpa.generate.ddl}" />
+				<property name="showSql" value="${jpa.show.sql}" />
+			</bean>
+		</property>
+		<property name="jpaDialect">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaDialect" />
+		</property>
+		<property name="jpaProperties" ref="jpaProperties" />
+	</bean>
+
+
+	<bean id="persistenceUnitManager" class="com.nucleus.persistence.MergingPersistenceUnitManager">
+		<property name="persistenceXmlLocations">
+			<list>
+				<value>classpath*:META-INF/Persistence.xml</value>
+			</list>
+		</property>
+		<property name="persistenceUnitPostProcessors" ref="persistenceUnitPostProcessor" />
+		<property name="basePersistenceUnitName" ref="basePersistenceUnitName" />
+	</bean>
+
+	<bean id="persistenceUnitPostProcessor" class="com.nucleus.persistence.JtaPersistenceUnitPostProcessor">
+		<property name="dataSource" ref="dataSource" />
+		<property name="jtaEnabled" value="false" />
+	</bean>
+
+	<bean id="basePersistenceUnitName" class="java.lang.String">
+		<constructor-arg type="String" value="DebPoc" />
+	</bean>
+
+
+
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<beans profile="app-server-provided">
+
+		<!-- If deployed in EE application server, use Spring to detect its transaction 
+			manager in standard JNDI locations -->
+		<util:properties id="jpaProperties">
+			<prop key="hibernate.default_schema">${hibernate.default_schema}</prop>
+			<prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</prop>
+			<prop key="hibernate.format_sql">${hibernate.format_sql}</prop>
+			<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+			<prop key="hibernate.cache.region.factory_class">${hibernate.cache.region.factory_class}</prop>
+			<!-- <prop key="hibernate.cache.provider_class">${hibernate.cache.provider_class}</prop> -->
+			<prop key="hibernate.cache.infinispan.cfg">${infinispan.hibernate.cache.cfg}</prop>
+			<prop key="hibernate.cache.region_prefix">${hibernate.cache.region_prefix}</prop>
+			<prop key="hibernate.cache.use_structured_entries">${hibernate.cache.use_structured_entries}</prop>
+			<prop key="hibernate.cache.use_second_level_cache">${hibernate.cache.use_second_level_cache}</prop>
+			<prop key="hibernate.cache.use_query_cache">${hibernate.cache.use_query_cache}</prop>
+			<prop key="hibernate.jdbc.batch_size">${hibernate.jdbc.batch_size}</prop>
+			<prop key="hibernate.order_inserts">${hibernate.order_inserts}</prop>
+			<prop key="hibernate.order_updates">${hibernate.order_updates}</prop>
+			<prop key="hibernate.transaction.jta.platform">${hibernate.transaction.jta.platform}</prop>
+		</util:properties>
+
+		<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+			<property name="jndiName" value="${database.dataSource.name}" />
+			<property name="proxyInterface" value="javax.sql.DataSource" />
+		</bean>
+
+		<bean id="transactionManager" class="${jta.transaction.manager.class}" />
+
+		<beans profile="tomcat-jta">
+			<bean id="transactionManager"
+				class="org.springframework.transaction.jta.JtaTransactionManager">
+				<property name="transactionManager" ref="arjunaTransactionManager" />
+				<property name="userTransaction" ref="arjunaUserTransaction" />
+			</bean>
+
+			<bean id="arjunaTransactionManager" class="com.arjuna.ats.jta.TransactionManager"
+				factory-method="transactionManager" />
+			<bean id="arjunaUserTransaction" class="com.arjuna.ats.jta.UserTransaction"
+				factory-method="userTransaction">
+				<property name="transactionTimeout" value="500" />
+			</bean>
+		</beans>
+		<beans profile="!tomcat-jta">
+			<bean id="transactionManager" class="${jta.transaction.manager.class}" />
+		</beans>
+	</beans>
+
+
+	<beans profile="!app-server-provided">
+		<beans profile="!tomcat-jta">
+
+			<util:properties id="jpaProperties">
+				<prop key="hibernate.default_schema">${hibernate.default_schema}</prop>
+				<prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</prop>
+				<prop key="hibernate.format_sql">${hibernate.format_sql}</prop>
+				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+				<!-- <prop key="hibernate.cache.region.factory_class">${hibernate.cache.region.factory_class}</prop> -->
+				<!-- <prop key="hibernate.cache.region_prefix">${hibernate.cache.region_prefix}</prop> -->
+				<!-- <prop key="hibernate.cache.provider_class">${hibernate.cache.provider_class}</prop> -->
+
+				<prop key="hibernate.cache.infinispan.cfg">${infinispan.hibernate.cache.cfg}</prop>
+				<prop key="hibernate.cache.use_structured_entries">${hibernate.cache.use_structured_entries}</prop>
+				<prop key="hibernate.cache.use_second_level_cache">${hibernate.cache.use_second_level_cache}</prop>
+				<prop key="hibernate.cache.use_query_cache">${hibernate.cache.use_query_cache}</prop>
+				<prop key="hibernate.jdbc.batch_size">${hibernate.jdbc.batch_size}</prop>
+				<prop key="hibernate.order_inserts">${hibernate.order_inserts}</prop>
+				<prop key="hibernate.order_updates">${hibernate.order_updates}</prop>
+				
+				<!-- For Redis -->
+				<prop key="hibernate.cache.region.factory_class">${hibernate.cache.region.factory_class.redis}</prop>
+				<prop key="hibernate.cache.region_prefix">${hibernate.cache.region_prefix.redis}</prop>
+				<prop key="hibernate.cache.provider_configuration_file_resource_path">${hibernate.cache.provider_configuration_file_resource_path}</prop>
+			</util:properties>
+
+
+			<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+				destroy-method="close">
+				<property name="driverClassName" value="${database.driver.class}" />
+				<property name="url" value="${database.connection.url}" />
+				<property name="username" value="${database.username}" />
+				<property name="password" value="${database.password}" />
+				<property name="maxIdle" value="${database.connection.pool.maxIdle}" />
+				<property name="maxActive" value="${database.connection.pool.maxActive}" />
+				<property name="maxWait" value="${database.connection.pool.maxWait}" />
+				<property name="removeAbandoned"
+					value="${database.connection.pool.removeAbandoned}" />
+				<property name="testWhileIdle" value="${database.connection.pool.testWhileIdle}" />
+				<property name="validationQuery"
+					value="${database.connection.pool.validationQuery}" />
+				<property name="testOnBorrow" value="${database.connection.pool.testOnBorrow}" />
+			</bean>
+
+			<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+				<property name="entityManagerFactory" ref="entityManagerFactory" />
+			</bean>
+		</beans>
+	</beans>
+
+</beans>

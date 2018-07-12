@@ -1,0 +1,26 @@
+# redisson configuration for redis servers
+# see : https://github.com/mrniko/redisson/wiki/2.-Configuration
+
+singleServerConfig:
+  idleConnectionTimeout: 30000
+  pingTimeout: 5000
+  connectTimeout: 30000
+  timeout: 1000
+  retryAttempts: 3
+  retryInterval: 4500
+  reconnectionTimeout: 10000
+  failedAttempts: 5
+  password: deb123#
+  subscriptionsPerConnection: 5
+  clientName: redis
+  address: "redis://10.0.50.128:6399"
+  subscriptionConnectionMinimumIdleSize: 5
+  subscriptionConnectionPoolSize: 300
+  connectionMinimumIdleSize: 5
+  connectionPoolSize: 300
+  database: 1
+threads: 0
+# Codec
+codec: !<org.redisson.codec.SnappyCodec> {}
+useLinuxNativeEpoll: false
+eventLoopGroup: null

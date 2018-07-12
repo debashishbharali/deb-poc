@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wls:weblogic-web-app xmlns:wls="http://xmlns.oracle.com/weblogic/weblogic-web-app" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd http://xmlns.oracle.com/weblogic/weblogic-web-app http://xmlns.oracle.com/weblogic/weblogic-web-app/1.5/weblogic-web-app.xsd">
+	<wls:weblogic-version>12.1.3</wls:weblogic-version>
+
+	<wls:context-root>/deb-poc</wls:context-root>
+	<jsp-descriptor>
+		<keepgenerated>true</keepgenerated>
+		<wls:precompile>true</wls:precompile> 
+		<wls:precompile-continue>true</wls:precompile-continue> 
+	</jsp-descriptor>
+
+	<wls:container-descriptor>
+		<wls:prefer-application-packages>
+		   <package-name>org.hibernate.*</package-name>
+		   <package-name>org.springframework.*</package-name>
+		   <package-name>javax.persistence.*</package-name>
+		   <package-name>org.apache.commons.*</package-name>
+		   <package-name>javassist.*</package-name>
+		   <package-name>com.fasterxml.jackson.*</package-name>
+		   <package-name>org.jboss.logging.*</package-name>
+		</wls:prefer-application-packages>
+
+		<wls:show-archived-real-path-enabled>true</wls:show-archived-real-path-enabled>
+
+	</wls:container-descriptor>
+	<wls:session-descriptor>
+		<wls:cookie-name>debjsessionid</wls:cookie-name>
+	</wls:session-descriptor>
+</wls:weblogic-web-app>
